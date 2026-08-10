@@ -1,0 +1,27 @@
+# Core API
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+python-multipart>=0.0.12
+pydantic-settings>=2.6.0
+python-dotenv>=1.0.1
+httpx>=0.27.0
+
+# Document extraction
+pymupdf>=1.24.0
+python-docx>=1.1.2
+
+# TTS engines (install what you need)
+piper-tts>=1.2.0
+edge-tts>=6.1.0
+pydub>=0.25.1
+# Optional:
+# persian_tts_mrj
+# pip install git+https://github.com/dibbed/TTSKit-multi-engine-tts.git
+
+# Messaging
+playwright>=1.48.0
+# Optional helper: python-bale-bot
+
+# Utilities
+requests>=2.32.0
+rich>=13.9.0

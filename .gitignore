@@ -1,0 +1,38 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Env / secrets
+.env
+*.pem
+*.key
+
+# Runtime outputs
+output/audio/*
+output/jobs/*
+output/uploads/*
+output/sessions/*
+!output/audio/.gitkeep
+!output/jobs/.gitkeep
+!output/uploads/.gitkeep
+
+# Models (large binaries — download separately)
+models/*.onnx
+models/*.onnx.json
+!models/.gitkeep
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+Thumbs.db
+Desktop.ini
+
+
+text.txt
+samples/کلانا_report-5.pdf
