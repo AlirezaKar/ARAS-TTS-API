@@ -1,0 +1,20 @@
+2026-08-10 12:23:25.782: [INFO] CurrentProfilePath: D:\Programming-with-Alireza\KN2C_ARAS\TTS-API\output\sessions\bale\Default
+2026-08-10 12:23:25.782: [INFO] Profiles total count: 1
+2026-08-10 12:23:25.782: [INFO] Profile: name=Profile 1 path=D:\Programming-with-Alireza\KN2C_ARAS\TTS-API\output\sessions\bale\Default lastActive=null
+2026-08-10 12:23:25.782: [INFO] LastUsedProfileDir: D:\Programming-with-Alireza\KN2C_ARAS\TTS-API\output\sessions\bale\Default
+2026-08-10 12:23:25.782: [INFO] VisibilityChanged: 0
+2026-08-10 12:23:25.812: [INFO] OnDoneLoading sync enabled: 0
+2026-08-10 12:23:25.812: [INFO] BookmarkModelLoaded, ids_reassigned: 0
+2026-08-10 12:23:25.812: [INFO] BookmarksLoadDropped droppedNodes=0
+2026-08-10 12:23:25.812: [INFO] BookmarksSnapshot Startup total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-08-10 12:23:50.839: [INFO] CurrentProfilePath: D:\Programming-with-Alireza\KN2C_ARAS\TTS-API\output\sessions\bale\Default
+2026-08-10 12:23:50.839: [INFO] Profiles total count: 1
+2026-08-10 12:23:50.840: [INFO] Profile: name=Personal path=D:\Programming-with-Alireza\KN2C_ARAS\TTS-API\output\sessions\bale\Default lastActive=2026-08-10T12:23:30.490Z
+2026-08-10 12:23:50.840: [INFO] LastUsedProfileDir: D:\Programming-with-Alireza\KN2C_ARAS\TTS-API\output\sessions\bale\Default
+2026-08-10 12:23:50.840: [INFO] MostRecentlyActiveProfile: name=Personal path=D:\Programming-with-Alireza\KN2C_ARAS\TTS-API\output\sessions\bale\Default lastActive=2026-08-10T12:23:30.490Z
+2026-08-10 12:23:50.840: [INFO] VisibilityChanged: 0
+2026-08-10 12:23:50.893: [INFO] OnDoneLoading sync enabled: 0
+2026-08-10 12:23:50.893: [INFO] BookmarkModelLoaded, ids_reassigned: 0
+2026-08-10 12:23:50.893: [INFO] BookmarksLoadDropped droppedNodes=0
+2026-08-10 12:23:50.893: [INFO] BookmarksSnapshot Startup total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-08-10 12:24:00.568: [INFO] BookmarksSnapshot Shutdown total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1

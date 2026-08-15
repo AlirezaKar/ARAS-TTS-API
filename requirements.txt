@@ -14,19 +14,12 @@ python-docx>=1.1.2
 #   pip install hazm>=0.7.0
 # Without hazm, lexicon lookup still works with null context tags.
 
-# TTS engines (install what you need)
-piper-tts>=1.2.0
-edge-tts>=6.1.0
+# Audio helpers (format conversion / Grok multi-chunk concat)
 pydub>=0.25.1
-# Optional:
-# persian_tts_mrj
-# pip install git+https://github.com/dibbed/TTSKit-multi-engine-tts.git
-
-# Messaging
-playwright>=1.48.0
-# Optional helper: python-bale-bot
+imageio-ffmpeg>=0.5.1
 
 # Utilities
 requests>=2.32.0
 rich>=13.9.0
 pytest>=8.0.0
+click>=8.4.2,<9.0.0

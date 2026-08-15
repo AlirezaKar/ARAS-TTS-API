@@ -1,99 +1,118 @@
 from __future__ import annotations
 
-from app.schemas import Accuracy, EngineInfo
-from app.services.tts.edge_tts_engine import EdgeTTSEngine
-from app.services.tts.elevenlabs_engine import ElevenLabsEngine
-from app.services.tts.persian_tts_mrj import PersianTTSMRJEngine
-from app.services.tts.piper_engine import PiperEngine
-from app.services.tts.piper_lca_engine import PiperLCAEngine
-from app.services.tts.stub_engine import StubEngine
-from app.services.tts.ttskit_engine import TTSKitEngine
+from app.schemas import EngineInfo, EngineVersionInfo
+from app.services.tts.gemini_engine import GEMINI_VOICES, GeminiEngine
+from app.services.tts.google_studio_engine import GoogleStudioEngine
 
-# Accuracy tier → preferred engine order (first available wins at runtime if needed)
-ACCURACY_ENGINE_MAP: dict[Accuracy, str] = {
-    Accuracy.fast: "persian_tts_mrj",
-    Accuracy.balanced: "piper_lca",
-    Accuracy.high: "ttskit",
-    Accuracy.premium: "elevenlabs",
+# Display order for GET /engines and toolbox
+ENGINE_ORDER: tuple[str, ...] = (
+    "gemini",
+    "google_studio",
+)
+
+DISPLAY_NAMES: dict[str, str] = {
+    "gemini": "Gemini TTS (direct API)",
+    "google_studio": "Google Studio (Apps Script)",
 }
 
-# Fallbacks when preferred engine is unavailable
-FALLBACKS: dict[Accuracy, list[str]] = {
-    Accuracy.fast: ["persian_tts_mrj", "piper", "piper_lca", "edge_tts", "stub"],
-    Accuracy.balanced: ["piper_lca", "piper", "persian_tts_mrj", "edge_tts", "stub"],
-    Accuracy.high: ["ttskit", "piper_lca", "elevenlabs", "piper", "edge_tts", "stub"],
-    Accuracy.premium: ["elevenlabs", "ttskit", "piper_lca", "edge_tts", "stub"],
+_ENGINE_ALIASES: dict[str, str] = {
+    "apps_script": "google_studio",
+    "google": "google_studio",
 }
 
 
-def _all_engines() -> dict[str, object]:
-    return {
-        "piper": PiperEngine(),
-        "piper_lca": PiperLCAEngine(),
-        "persian_tts_mrj": PersianTTSMRJEngine(),
-        "ttskit": TTSKitEngine(),
-        "elevenlabs": ElevenLabsEngine(),
-        "edge_tts": EdgeTTSEngine(),
-        "stub": StubEngine(),
-    }
+def _normalize_engine(name: str) -> str:
+    raw = (name or "").strip().lower()
+    return _ENGINE_ALIASES.get(raw, raw)
+
+
+normalize_engine = _normalize_engine
+
+
+def _safe_available(eng) -> tuple[bool, str]:
+    try:
+        return eng.is_available()  # type: ignore[attr-defined]
+    except Exception as exc:  # noqa: BLE001
+        return False, f"availability check failed: {exc}"
+
+
+def _version_infos_for(engine: str) -> list[EngineVersionInfo]:
+    if engine == "gemini":
+        base_ok, base_detail = _safe_available(GeminiEngine())
+        return [
+            EngineVersionInfo(id=vid, available=base_ok, detail=base_detail)
+            for vid in GEMINI_VOICES
+        ]
+    return []
 
 
 def list_engines() -> list[EngineInfo]:
-    engines = _all_engines()
     infos: list[EngineInfo] = []
-    for accuracy, eng_name in ACCURACY_ENGINE_MAP.items():
-        eng = engines[eng_name]
-        available, detail = eng.is_available()  # type: ignore[attr-defined]
+    for name in ENGINE_ORDER:
+        try:
+            versions = _version_infos_for(name)
+            if versions:
+                available = any(v.available for v in versions)
+                detail = (
+                    f"{sum(1 for v in versions if v.available)}/{len(versions)} voices ready"
+                    if available
+                    else (versions[0].detail if versions else "unavailable")
+                )
+            else:
+                eng = _instantiate(name, None)
+                available, detail = _safe_available(eng)
+        except Exception as exc:  # noqa: BLE001
+            versions = []
+            available = False
+            detail = f"engine probe failed: {exc}"
         infos.append(
             EngineInfo(
-                accuracy=accuracy,
-                engine=eng_name,
-                available=available,
-                detail=detail,
-            )
-        )
-    # Also list other installed engines
-    mapped = set(ACCURACY_ENGINE_MAP.values())
-    for name, eng in engines.items():
-        if name in mapped:
-            continue
-        available, detail = eng.is_available()  # type: ignore[attr-defined]
-        infos.append(
-            EngineInfo(
-                accuracy=Accuracy.fast,
                 engine=name,
+                display_name=DISPLAY_NAMES.get(name, name),
                 available=available,
                 detail=detail,
+                versions=versions,
             )
         )
     return infos
 
 
-def get_engine_for_accuracy(
-    accuracy: Accuracy,
-    allow_fallback: bool = True,
-    *,
-    elevenlabs_model: str | None = None,
-):
-    engines = _all_engines()
-    order = FALLBACKS.get(accuracy, [ACCURACY_ENGINE_MAP[accuracy]])
-    if not allow_fallback:
-        order = [ACCURACY_ENGINE_MAP[accuracy]]
+def _instantiate(engine: str, version: str | None):
+    if engine == "gemini":
+        return GeminiEngine(voice=version)
+    if engine == "google_studio":
+        return GoogleStudioEngine()
+    raise ValueError(f"Unknown engine '{engine}'. Known: {', '.join(ENGINE_ORDER)}")
 
-    errors: list[str] = []
-    for name in order:
-        if name == "elevenlabs":
-            eng = ElevenLabsEngine(model_id=elevenlabs_model)
-        else:
-            eng = engines.get(name)
-        if eng is None:
-            continue
-        ok, detail = eng.is_available()  # type: ignore[attr-defined]
-        if ok:
-            return eng, name
-        errors.append(f"{name}: {detail}")
 
-    raise RuntimeError(
-        f"No TTS engine available for accuracy='{accuracy.value}'. "
-        + "; ".join(errors)
-    )
+def get_engine(engine: str, version: str | None = None):
+    """
+    Resolve a specific engine (+ optional version). No silent fallbacks.
+    Returns (engine_instance, engine_name, resolved_version).
+    """
+    name = _normalize_engine(engine)
+    if name not in ENGINE_ORDER:
+        raise ValueError(f"Unknown engine '{engine}'. Known: {', '.join(ENGINE_ORDER)}")
+
+    ver = version.strip() if version and version.strip() else None
+
+    if name == "gemini":
+        eng = GeminiEngine(voice=ver)
+        ok, detail = eng.is_available()
+        if not ok:
+            raise RuntimeError(f"Engine '{name}' unavailable: {detail}")
+        return eng, name, eng.voice
+
+    if name == "google_studio":
+        if ver is not None:
+            raise ValueError(
+                "Engine 'google_studio' has no versions "
+                "(voice/model are configured inside Apps Script Code.gs)"
+            )
+        eng = GoogleStudioEngine()
+        ok, detail = eng.is_available()
+        if not ok:
+            raise RuntimeError(f"Engine '{name}' unavailable: {detail}")
+        return eng, name, None
+
+    raise ValueError(f"Unknown engine '{engine}'. Known: {', '.join(ENGINE_ORDER)}")

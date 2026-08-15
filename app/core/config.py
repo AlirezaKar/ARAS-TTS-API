@@ -15,7 +15,7 @@ class Settings(BaseSettings):
 
     app_name: str = "Persian TTS-API"
     app_host: str = "0.0.0.0"
-    app_port: int = 8000
+    app_port: int = 5004
     debug: bool = False
 
     root_dir: Path = ROOT_DIR
@@ -26,40 +26,22 @@ class Settings(BaseSettings):
     models_dir: Path = ROOT_DIR / "models"
     lexicon_path: Path = ROOT_DIR / "fine_tuning" / "lexicon.json"
     pronunciation_db_path: Path = ROOT_DIR / "fine_tuning" / "pronunciation.db"
-    phone_map_path: Path = ROOT_DIR / "fine_tuning" / "phone_chat_map.json"
 
-    # Piper
-    piper_model_path: Path = ROOT_DIR / "models" / "fa_IR-amir-medium.onnx"
-    piper_lca_model_path: Path = ROOT_DIR / "models" / "fa_IR-mana-medium.onnx"
+    # Direct Gemini TTS (engine=gemini) — independent of Apps Script
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-2.5-flash-preview-tts"
+    gemini_voice: str = "Kore"
+    gemini_prompt: str = "Say the following clearly in Persian."
+    # developer = AI Studio generateContent (API key, recommended free tier)
+    # cloud = texttospeech.googleapis.com Gemini-TTS (often needs GCP project)
+    gemini_tts_backend: str = "developer"
+    gemini_language_code: str = "fa-IR"
+    google_cloud_project: str = ""
 
-    # Cloud / bots
-    elevenlabs_api_key: str = ""
-    elevenlabs_voice_id: str = ""
-    # Default model: v2 alias or full id (v1=flash_v2_5, v2=multilingual_v2, v3=eleven_v3)
-    elevenlabs_model_id: str = "v2"
+    # Google Studio via Apps Script (engine=google_studio) — unchanged path
+    google_apps_script_url: str = ""
 
-    bale_bot_token: str = ""
-    bale_api_base: str = "https://tapi.bale.ai"
-
-    telegram_bot_token: str = ""
-    telegram_api_base: str = "https://api.telegram.org"
-
-    whatsapp_cloud_token: str = ""
-    whatsapp_phone_number_id: str = ""
-    whatsapp_api_base: str = "https://graph.facebook.com/v19.0"
-
-    # Playwright session dirs
-    # Use installed Edge (channel) so Iran geo-blocks on Playwright CDN are avoided.
-    # Values: msedge | chrome | chromium (chromium needs playwright install)
-    playwright_channel: str = "msedge"
-    playwright_whatsapp_user_data: Path = ROOT_DIR / "output" / "sessions" / "whatsapp"
-    playwright_telegram_user_data: Path = ROOT_DIR / "output" / "sessions" / "telegram"
-    playwright_bale_user_data: Path = ROOT_DIR / "output" / "sessions" / "bale"
-    playwright_headless: bool = False
-    # When true, TTS still runs but social send is skipped (useful for local audio tests)
-    skip_messaging: bool = False
-
-    default_audio_format: str = "mp3"
+    default_audio_format: str = "wav"
     allowed_extensions: frozenset[str] = frozenset({".txt", ".pdf", ".docx"})
 
     def ensure_dirs(self) -> None:
@@ -69,9 +51,6 @@ class Settings(BaseSettings):
             self.jobs_dir,
             self.uploads_dir,
             self.models_dir,
-            self.playwright_whatsapp_user_data,
-            self.playwright_telegram_user_data,
-            self.playwright_bale_user_data,
             self.lexicon_path.parent,
         ):
             path.mkdir(parents=True, exist_ok=True)

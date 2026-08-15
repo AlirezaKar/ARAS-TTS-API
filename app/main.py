@@ -14,7 +14,7 @@ logging.basicConfig(
 app = FastAPI(
     title=settings.app_name,
     version=__version__,
-    description="Standalone Persian Text-to-Speech API with harakat fine-tuning and hybrid messaging.",
+    description="Standalone Persian Text-to-Speech API with harakat fine-tuning and selectable TTS engines.",
 )
 
 app.include_router(router)

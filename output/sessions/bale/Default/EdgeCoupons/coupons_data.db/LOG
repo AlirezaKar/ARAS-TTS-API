@@ -1,0 +1,6 @@
+2026/08/10-15:53:53.959 392c Reusing MANIFEST D:\Programming-with-Alireza\KN2C_ARAS\TTS-API\output\sessions\bale\Default\EdgeCoupons/coupons_data.db/MANIFEST-000001
+2026/08/10-15:53:53.960 392c Recovering log #4
+2026/08/10-15:53:53.960 392c Reusing old log D:\Programming-with-Alireza\KN2C_ARAS\TTS-API\output\sessions\bale\Default\EdgeCoupons/coupons_data.db/000004.log 
+2026/08/10-15:53:54.291 11e0 Level-0 table #8: started
+2026/08/10-15:53:54.351 11e0 Level-0 table #8: 683376 bytes OK
+2026/08/10-15:53:54.428 11e0 Delete type=0 #4
