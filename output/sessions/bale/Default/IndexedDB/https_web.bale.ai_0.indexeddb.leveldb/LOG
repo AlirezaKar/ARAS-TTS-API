@@ -1,7 +1,0 @@
-2026/08/10-15:53:51.340 2cc0 Reusing MANIFEST D:\Programming-with-Alireza\KN2C_ARAS\TTS-API\output\sessions\bale\Default\IndexedDB\https_web.bale.ai_0.indexeddb.leveldb/MANIFEST-000001
-2026/08/10-15:53:51.341 2cc0 Recovering log #4
-2026/08/10-15:53:51.344 2cc0 Reusing old log D:\Programming-with-Alireza\KN2C_ARAS\TTS-API\output\sessions\bale\Default\IndexedDB\https_web.bale.ai_0.indexeddb.leveldb/000004.log 
-2026/08/10-15:53:51.522 11e0 Level-0 table #8: started
-2026/08/10-15:53:51.562 11e0 Level-0 table #8: 26677 bytes OK
-2026/08/10-15:53:51.603 11e0 Delete type=0 #4
-2026/08/10-15:53:51.605 3e38 Manual compaction at level-0 from '\x00\x06\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x07\x00\x00\x00' @ 0 : 0; will stop at (end)

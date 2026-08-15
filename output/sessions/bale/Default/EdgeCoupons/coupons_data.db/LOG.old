@@ -1,5 +1,0 @@
-2026/08/10-15:53:29.503 2884 Creating DB D:\Programming-with-Alireza\KN2C_ARAS\TTS-API\output\sessions\bale\Default\EdgeCoupons/coupons_data.db since it was missing.
-2026/08/10-15:53:30.037 2884 Reusing MANIFEST D:\Programming-with-Alireza\KN2C_ARAS\TTS-API\output\sessions\bale\Default\EdgeCoupons/coupons_data.db/MANIFEST-000001
-2026/08/10-15:53:31.573 513c Level-0 table #5: started
-2026/08/10-15:53:31.790 513c Level-0 table #5: 683273 bytes OK
-2026/08/10-15:53:31.869 513c Delete type=0 #3
