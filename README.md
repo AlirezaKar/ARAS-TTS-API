@@ -13,13 +13,30 @@ Default listen port: **5004**.
 
 ## Quick start
 
+**Windows**
+
 ```bat
-setup_all.cmd
 copy .env.sample .env
 REM edit .env — set GEMINI_API_KEY and/or GOOGLE_APPS_SCRIPT_URL
 run_api.cmd
 toolbox.cmd
 ```
+
+**Ubuntu / Linux**
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+cp .env.sample .env   # edit keys
+chmod +x run_api.sh run_app.sh toolbox.sh
+./run_api.sh          # or: ./run_app.sh
+# other terminal:
+./toolbox.sh
+```
+
+Production install (systemd on **:5004**, no Caddy): `sudo bash deploy/install_ubuntu.sh`  
+Then: `sudo systemctl start tts-api` and `./toolbox.sh http://127.0.0.1:5004`.  
+From another machine: `http://SERVER_IP:5004` (open firewall TCP 5004).
 
 ## Engines
 

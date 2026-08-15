@@ -1,32 +1,19 @@
-# Caddy reverse proxy for Persian TTS-API
+# OPTIONAL — not used by the default Ubuntu install.
 #
-# Listens on :80 (and HTTPS if you set a real domain) and forwards to uvicorn on :5004.
+# The API listens directly on :5004 (see deploy/tts-api.service).
+# Only use this file if you later want a reverse proxy / HTTPS in front of TTS-API
+# and you have confirmed port 80/443 are free for Caddy.
 #
-# Install:
-#   sudo cp deploy/Caddyfile /etc/caddy/Caddyfile
-#   # or: include this snippet from your main Caddyfile
-#   sudo systemctl reload caddy
+# Example (domain + HTTPS):
 #
-# Replace :80 with your domain (e.g. tts.example.com) for automatic HTTPS.
-
-:80 {
-	encode gzip
-
-	handle /health {
-		reverse_proxy 127.0.0.1:5004
-	}
-
-	handle {
-		reverse_proxy 127.0.0.1:5004 {
-			# Long TTS jobs / large uploads
-			transport http {
-				read_timeout 10m
-				write_timeout 10m
-			}
-		}
-	}
-
-	log {
-		output file /var/log/caddy/tts-api.log
-	}
-}
+# tts.example.com {
+# 	encode gzip
+# 	reverse_proxy 127.0.0.1:5004 {
+# 		transport http {
+# 			read_timeout 10m
+# 			write_timeout 10m
+# 		}
+# 	}
+# }
+#
+# Prefer binding uvicorn to 127.0.0.1 if you enable a proxy, so only Caddy is public.

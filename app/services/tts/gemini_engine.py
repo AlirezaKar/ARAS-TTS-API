@@ -40,6 +40,10 @@ GEMINI_VOICES: tuple[str, ...] = (
     "Autonoe",
 )
 
+# TTS can take several minutes on free tier / long text; voice choice does not
+# change availability — slow responses are usually quota/load, not a bad voice.
+GEMINI_HTTP_TIMEOUT_S = 360.0
+
 
 def pcm_to_wav_bytes(pcm: bytes, *, rate: int = 24000) -> bytes:
     buf = io.BytesIO()
@@ -163,7 +167,7 @@ class GeminiEngine:
                 },
             },
         }
-        with httpx.Client(timeout=180.0) as client:
+        with httpx.Client(timeout=GEMINI_HTTP_TIMEOUT_S) as client:
             resp = client.post(
                 url,
                 headers={
@@ -234,7 +238,7 @@ class GeminiEngine:
             headers["x-goog-user-project"] = project
 
         url = "https://texttospeech.googleapis.com/v1/text:synthesize"
-        with httpx.Client(timeout=180.0) as client:
+        with httpx.Client(timeout=GEMINI_HTTP_TIMEOUT_S) as client:
             resp = client.post(url, headers=headers, json=payload)
         if resp.status_code >= 400:
             raise RuntimeError(

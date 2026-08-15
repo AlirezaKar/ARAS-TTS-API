@@ -53,7 +53,7 @@ def menu() -> None:
 def prompt_line(message: str, *, default: str | None = None) -> str | object:
     """
     Read a line. Returns BACK on Esc / 'b' / 'back'.
-    On Windows, Esc is detected via msvcrt; elsewhere type b/back.
+    Windows: Esc via msvcrt. Linux/macOS: Esc via termios (TTY) or type b/back.
     """
     suffix = f" [{default}]" if default is not None else ""
     full = f"{message}{suffix}: "
@@ -94,7 +94,62 @@ def prompt_line(message: str, *, default: str | None = None) -> str | object:
                 sys.stdout.write(ch)
                 sys.stdout.flush()
 
-    # Fallback (non-Windows or no msvcrt)
+    # POSIX TTY: support Esc without needing to type "b"
+    if sys.stdin.isatty() and hasattr(sys.stdin, "fileno"):
+        try:
+            import select
+            import termios
+            import tty
+        except ImportError:
+            pass
+        else:
+            print(full, end="", flush=True)
+            fd = sys.stdin.fileno()
+            old = termios.tcgetattr(fd)
+            buf: list[str] = []
+            try:
+                tty.setcbreak(fd)
+                while True:
+                    ready, _, _ = select.select([sys.stdin], [], [], None)
+                    if not ready:
+                        continue
+                    ch = sys.stdin.read(1)
+                    if ch == "\x1b":
+                        # Drain short CSI sequences (arrows) so they don't leak
+                        if select.select([sys.stdin], [], [], 0.05)[0]:
+                            nxt = sys.stdin.read(1)
+                            if nxt == "[":
+                                while select.select([sys.stdin], [], [], 0.05)[0]:
+                                    more = sys.stdin.read(1)
+                                    if more.isalpha() or more == "~":
+                                        break
+                                continue
+                        print()
+                        return BACK
+                    if ch in ("\r", "\n"):
+                        print()
+                        text = "".join(buf).strip()
+                        if not text and default is not None:
+                            return default
+                        if text.lower() in {"b", "back"}:
+                            return BACK
+                        return text
+                    if ch in ("\x7f", "\b"):
+                        if buf:
+                            buf.pop()
+                            sys.stdout.write("\b \b")
+                            sys.stdout.flush()
+                        continue
+                    if ch == "\x03":
+                        raise KeyboardInterrupt
+                    if ch.isprintable():
+                        buf.append(ch)
+                        sys.stdout.write(ch)
+                        sys.stdout.flush()
+            finally:
+                termios.tcsetattr(fd, termios.TCSADRAIN, old)
+
+    # Fallback (piped stdin / no termios)
     try:
         raw = input(full)
     except EOFError:
@@ -311,13 +366,14 @@ def test_tts(client: httpx.Client) -> None:
     print(
         f"\nSubmitting engine={engine_name} version={version or '-'} format={audio_format}…"
     )
-    timeout = 320.0 if str(engine_name) == "google_studio" else 180.0
+    # Submit is quick (async job); keep a generous client timeout anyway.
+    # Poll window must cover Gemini HTTP timeout (~360s) + queue/overhead.
     with path.open("rb") as f:
         r = client.post(
             "/tts",
             data=data,
             files={"file": (path.name, f, "application/octet-stream")},
-            timeout=timeout,
+            timeout=60.0,
         )
     if r.status_code >= 400:
         print("✗", r.status_code, r.text)
@@ -330,7 +386,7 @@ def test_tts(client: httpx.Client) -> None:
         return
 
     print("Waiting for result…")
-    body = _poll(client, job_id, max_wait=200 if str(engine_name) == "google_studio" else 120)
+    body = _poll(client, job_id, max_wait=280)
     if not body:
         return
 
@@ -409,7 +465,7 @@ def main() -> int:
                 print("Bye.")
                 return 0
             elif choice in {"1", "2", "3"}:
-                with httpx.Client(base_url=base, timeout=320.0) as client:
+                with httpx.Client(base_url=base, timeout=400.0) as client:
                     if choice == "1":
                         health(client)
                     elif choice == "2":

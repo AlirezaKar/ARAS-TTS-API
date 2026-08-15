@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Bootstrap Persian TTS-API on Ubuntu: venv, systemd auto-restart, Caddy on :80 → :5004
+# Bootstrap Persian TTS-API on Ubuntu: venv + systemd on port 5004 (no reverse proxy).
 #
 # Usage (as root or with sudo):
 #   sudo bash deploy/install_ubuntu.sh
@@ -8,13 +8,15 @@
 # Env overrides:
 #   APP_DIR   install path (default: /opt/tts-api)
 #   APP_USER  system user  (default: tts)
-#   DOMAIN    if set, Caddy uses this hostname (HTTPS); else listens on :80
+#   APP_PORT  listen port  (default: 5004)
+#   APP_HOST  bind address (default: 0.0.0.0 — reachable from LAN/internet)
 
 set -euo pipefail
 
 APP_DIR="${1:-${APP_DIR:-/opt/tts-api}}"
 APP_USER="${2:-${APP_USER:-tts}}"
-DOMAIN="${DOMAIN:-}"
+APP_PORT="${APP_PORT:-5004}"
+APP_HOST="${APP_HOST:-0.0.0.0}"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 if [[ "$(id -u)" -ne 0 ]]; then
@@ -25,17 +27,7 @@ fi
 echo "==> Installing system packages"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -y
-apt-get install -y python3 python3-venv python3-pip ffmpeg curl debian-keyring debian-archive-keyring apt-transport-https rsync gnupg
-
-if ! command -v caddy >/dev/null 2>&1; then
-  echo "==> Installing Caddy"
-  curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' \
-    | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-  curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' \
-    | tee /etc/apt/sources.list.d/caddy-stable.list >/dev/null
-  apt-get update -y
-  apt-get install -y caddy
-fi
+apt-get install -y python3 python3-venv python3-pip ffmpeg curl rsync
 
 if ! id -u "$APP_USER" >/dev/null 2>&1; then
   echo "==> Creating user $APP_USER"
@@ -64,49 +56,50 @@ sudo -u "$APP_USER" bash -lc "
 
 if [[ ! -f "$APP_DIR/.env" ]]; then
   cp "$APP_DIR/.env.sample" "$APP_DIR/.env"
-  sed -i 's/^APP_PORT=.*/APP_PORT=5004/' "$APP_DIR/.env"
-  sed -i 's/^APP_HOST=.*/APP_HOST=127.0.0.1/' "$APP_DIR/.env"
   chown "$APP_USER:$APP_USER" "$APP_DIR/.env"
   echo "Created $APP_DIR/.env — set GEMINI_API_KEY and/or GOOGLE_APPS_SCRIPT_URL."
 fi
 
-echo "==> systemd unit"
+# Always align bind settings for direct :5004 access (no Caddy)
+if grep -q '^APP_PORT=' "$APP_DIR/.env" 2>/dev/null; then
+  sed -i "s/^APP_PORT=.*/APP_PORT=$APP_PORT/" "$APP_DIR/.env"
+else
+  echo "APP_PORT=$APP_PORT" >>"$APP_DIR/.env"
+fi
+if grep -q '^APP_HOST=' "$APP_DIR/.env" 2>/dev/null; then
+  sed -i "s/^APP_HOST=.*/APP_HOST=$APP_HOST/" "$APP_DIR/.env"
+else
+  echo "APP_HOST=$APP_HOST" >>"$APP_DIR/.env"
+fi
+chown "$APP_USER:$APP_USER" "$APP_DIR/.env"
+
+echo "==> systemd unit (binds $APP_HOST:$APP_PORT)"
 sed \
   -e "s|/opt/tts-api|$APP_DIR|g" \
   -e "s|User=tts|User=$APP_USER|g" \
   -e "s|Group=tts|Group=$APP_USER|g" \
+  -e "s|--host 0.0.0.0|--host $APP_HOST|g" \
+  -e "s|--port 5004|--port $APP_PORT|g" \
   "$APP_DIR/deploy/tts-api.service" >/etc/systemd/system/tts-api.service
 
 systemctl daemon-reload
 systemctl enable --now tts-api
+systemctl restart tts-api
 
-echo "==> Caddy"
-mkdir -p /var/log/caddy
-if [[ -n "$DOMAIN" ]]; then
-  cat >/etc/caddy/Caddyfile <<EOF
-$DOMAIN {
-	encode gzip
-	reverse_proxy 127.0.0.1:5004 {
-		transport http {
-			read_timeout 10m
-			write_timeout 10m
-		}
-	}
-	log {
-		output file /var/log/caddy/tts-api.log
-	}
-}
-EOF
-else
-  cp "$APP_DIR/deploy/Caddyfile" /etc/caddy/Caddyfile
+# Open firewall port if ufw is active (safe no-op otherwise)
+if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -qi 'Status: active'; then
+  echo "==> Allowing TCP $APP_PORT in ufw"
+  ufw allow "${APP_PORT}/tcp" comment 'Persian TTS-API' || true
 fi
-systemctl enable --now caddy
-systemctl reload caddy || systemctl restart caddy
 
+PUBLIC_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
 echo
-echo "Done."
-echo "  API (local):  http://127.0.0.1:5004/health"
-echo "  Via Caddy:    http://\$(hostname -I | awk '{print \$1}')/health"
-echo "  Logs:         journalctl -u tts-api -f"
-echo "  Edit secrets: $APP_DIR/.env  (GEMINI_API_KEY, GOOGLE_APPS_SCRIPT_URL)"
-echo "  Asterisk TTS: $APP_DIR/deploy/asterisk/README.md"
+echo "Done. API listens directly on port $APP_PORT (no reverse proxy)."
+echo "  Local:   http://127.0.0.1:${APP_PORT}/health"
+echo "  Remote:  http://${PUBLIC_IP:-YOUR_SERVER_IP}:${APP_PORT}/health"
+echo "  Logs:    journalctl -u tts-api -f"
+echo "  Secrets: $APP_DIR/.env  (GEMINI_API_KEY, GOOGLE_APPS_SCRIPT_URL)"
+echo
+echo "If Caddy was previously installed for this app and you don't need it,"
+echo "  leave your other sites alone; just don't point :80 at this API."
+echo "  Optional: sudo systemctl disable --now caddy   # ONLY if Caddy isn't used elsewhere"

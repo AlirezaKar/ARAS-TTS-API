@@ -1,5 +1,7 @@
 # systemd unit — keeps Persian TTS-API running and auto-restarts on crash/reboot.
 #
+# Listens on 0.0.0.0:5004 (direct access; no reverse proxy required).
+#
 # Install (as root), after editing WorkingDirectory / User paths:
 #   sudo cp deploy/tts-api.service /etc/systemd/system/tts-api.service
 #   sudo systemctl daemon-reload
@@ -18,8 +20,8 @@ Group=tts
 WorkingDirectory=/opt/tts-api
 Environment=PYTHONUNBUFFERED=1
 EnvironmentFile=-/opt/tts-api/.env
-# Bind on localhost only; Caddy reverse-proxies public traffic → :5004
-ExecStart=/opt/tts-api/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 5004 --workers 1
+# Bind on all interfaces so Postman / LAN can reach :5004
+ExecStart=/opt/tts-api/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 5004 --workers 1
 Restart=always
 RestartSec=5
 TimeoutStopSec=30
