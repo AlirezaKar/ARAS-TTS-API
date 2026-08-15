@@ -23,6 +23,9 @@ app.include_router(router)
 @app.on_event("startup")
 def on_startup() -> None:
     settings.ensure_dirs()
+    from app.services.pronunciation.db import init_schema
+
+    init_schema(settings.pronunciation_db_path)
 
 
 def run() -> None:

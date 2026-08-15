@@ -13,6 +13,9 @@ from app.core.config import settings
 from app.schemas import (
     Accuracy,
     AudioFormat,
+    ElevenLabsModelVersion,
+    FeedbackRequest,
+    FeedbackResponse,
     FineTunePreviewRequest,
     FineTunePreviewResponse,
     HealthResponse,
@@ -22,14 +25,14 @@ from app.schemas import (
     MessageTestRequest,
     Platform,
     SendResult,
-    ElevenLabsModelVersion,
 )
-from app.services.fine_tune import fine_tune_text
+from app.services.fine_tune import fine_tune_text, strip_harakat, validate_diacritized
 from app.services.jobs import job_store
 from app.services.messaging.base import normalize_phone
 from app.services.messaging.phone_map import register_chat_id
 from app.services.messaging.registry import send_voice
 from app.services.pipeline import process_job
+from app.services.pronunciation.db import init_schema, insert_pending
 from app.services.tts.registry import list_engines
 
 router = APIRouter()
@@ -137,6 +140,34 @@ def fine_tune_preview(body: FineTunePreviewRequest) -> FineTunePreviewResponse:
         lexicon_path=settings.lexicon_path,
     )
     return FineTunePreviewResponse(original=body.text, tuned=tuned)
+
+
+@router.post("/feedback", response_model=FeedbackResponse)
+def submit_feedback(body: FeedbackRequest) -> FeedbackResponse:
+    """Queue a pronunciation correction. Does not mutate the live lexicon."""
+    bare = strip_harakat(body.word.strip())
+    if not bare:
+        raise HTTPException(status_code=400, detail="word must contain Persian letters")
+    harakat = validate_diacritized(body.correct_harakat.strip())
+    if strip_harakat(harakat) != bare:
+        raise HTTPException(
+            status_code=400,
+            detail="correct_harakat must be the same word with diacritics (letters must match)",
+        )
+
+    init_schema(settings.pronunciation_db_path)
+    pending_id = insert_pending(
+        settings.pronunciation_db_path,
+        word=bare,
+        proposed_harakat=harakat,
+        source="user_report",
+        confidence=0.9,
+        detection_method="user_feedback",
+        text_id=body.text_id,
+        context=body.context,
+        context_tag=body.context_tag,
+    )
+    return FeedbackResponse(ok=True, pending_id=pending_id)
 
 
 @router.post("/messaging/test", response_model=SendResult)

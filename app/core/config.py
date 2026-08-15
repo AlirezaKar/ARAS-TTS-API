@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     uploads_dir: Path = ROOT_DIR / "output" / "uploads"
     models_dir: Path = ROOT_DIR / "models"
     lexicon_path: Path = ROOT_DIR / "fine_tuning" / "lexicon.json"
+    pronunciation_db_path: Path = ROOT_DIR / "fine_tuning" / "pronunciation.db"
     phone_map_path: Path = ROOT_DIR / "fine_tuning" / "phone_chat_map.json"
 
     # Piper

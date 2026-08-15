@@ -55,6 +55,7 @@ toolbox.cmd
 | GET | `/jobs/{job_id}` | Poll status, `audio_url`, `send` feedback |
 | GET | `/files/{name}` | Download generated audio |
 | POST | `/fine-tune/preview` | Preview harakat lexicon application |
+| POST | `/feedback` | Queue pronunciation correction (pending only) |
 | POST | `/messaging/test` | Test platform send only |
 | POST | `/phone-map` | Map phone → bot `chat_id` |
 
@@ -94,8 +95,15 @@ If the preferred engine is missing, the registry walks fallbacks so the API stil
 
 ## Fine-tuning (harakat)
 
-Default lexicon: [`fine_tuning/lexicon.json`](fine_tuning/lexicon.json)
+Live lexicon: SQLite at `fine_tuning/pronunciation.db` (POS-aware via hazm when installed).  
+Seed JSON (import only): [`fine_tuning/lexicon.json`](fine_tuning/lexicon.json)
 
+```bat
+python scripts/import_lexicon_json.py
+pip install hazm
+```
+
+(`hazm` is optional; without it, lookups still work using null context tags.)
 Supported marks:
 
 - U+064E fatha `َ`
@@ -103,7 +111,8 @@ Supported marks:
 - U+064F damma `ُ`
 - U+0652 sukun `ْ`
 
-Request `special_words` overrides the default lexicon (longest whole-word match wins).
+Request `special_words` overrides the lexicon.  
+Report bad pronunciations with `POST /feedback` (queues `pending_corrections`; does **not** auto-write the live lexicon).
 
 ## Messaging (hybrid, Iran-ready)
 
@@ -139,7 +148,12 @@ Or use the toolbox:
 toolbox.cmd
 ```
 
-Choose **3) Submit TTS job** → point at `samples\hello.txt` → poll → **5) Download audio**.
+Menu:
+
+1. Health check  
+2. List engines / models  
+3. Test TTS — pick a file under the project root (lists `samples\` first), then auto-polls and can open the audio  
+4. Import `lexicon.json` into the SQLite pronunciation DB (same as `python scripts\import_lexicon_json.py`)
 
 Audio files are also saved under `output\audio\`.
 

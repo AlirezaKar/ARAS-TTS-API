@@ -49,6 +49,7 @@ def validate_diacritized(value: str) -> str:
 
 
 def load_lexicon(path: Path) -> dict[str, str]:
+    """Load flat JSON lexicon (seed / legacy). Prefer SQLite for live lookups."""
     if not path.exists():
         return {}
     data = json.loads(path.read_text(encoding="utf-8"))
@@ -69,14 +70,12 @@ def merge_lexicons(*maps: dict[str, str]) -> dict[str, str]:
 
 def apply_special_words(text: str, special_words: dict[str, str]) -> str:
     """
-    Replace whole Persian words using the lexicon.
-    Longer keys win first. Existing harakat in the source are preserved
-    for words that are not overridden by the lexicon.
+    Replace whole Persian words using a flat map.
+    Longer keys win first. Prefer diacritize_text for context-aware SQLite lookup.
     """
     if not special_words:
         return text
 
-    # Sort by bare-key length descending
     items = sorted(
         ((strip_harakat(k), validate_diacritized(v)) for k, v in special_words.items()),
         key=lambda kv: len(kv[0]),
@@ -99,8 +98,24 @@ def fine_tune_text(
     special_words: dict[str, str] | None = None,
     lexicon_path: Path | None = None,
 ) -> str:
-    base: dict[str, str] = {}
-    if lexicon_path is not None:
+    """
+    Diacritize Persian text using SQLite lexicon (POS-aware) plus request overrides.
+
+    `lexicon_path` is retained for API compatibility; live data comes from
+    settings.pronunciation_db_path. If the DB has no entries and a JSON seed
+    path is provided, fall back to flat JSON apply (bootstrap before import).
+    """
+    from app.core.config import settings
+    from app.services.pronunciation.db import count_lexicon, init_schema
+    from app.services.pronunciation.resolve import diacritize_text
+
+    db_path = settings.pronunciation_db_path
+    init_schema(db_path)
+
+    if count_lexicon(db_path) == 0 and lexicon_path is not None and lexicon_path.exists():
+        # Bootstrap: use legacy JSON until import_lexicon_json has been run
         base = load_lexicon(lexicon_path)
-    merged = merge_lexicons(base, special_words or {})
-    return apply_special_words(text, merged)
+        merged = merge_lexicons(base, special_words or {})
+        return apply_special_words(text, merged)
+
+    return diacritize_text(text, special_words=special_words, db_path=db_path)

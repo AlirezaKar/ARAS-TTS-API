@@ -21,6 +21,10 @@ output/sessions/*
 !output/jobs/.gitkeep
 !output/uploads/.gitkeep
 
+# Pronunciation SQLite (regenerate via scripts/import_lexicon_json.py)
+fine_tuning/pronunciation.db
+fine_tuning/*.db-journal
+
 # Models (large binaries — download separately)
 models/*.onnx
 models/*.onnx.json

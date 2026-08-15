@@ -98,6 +98,20 @@ class FineTunePreviewResponse(BaseModel):
     tuned: str
 
 
+class FeedbackRequest(BaseModel):
+    word: str
+    correct_harakat: str
+    text_id: str | None = None
+    context: str | None = None
+    context_tag: str | None = None
+
+
+class FeedbackResponse(BaseModel):
+    ok: bool = True
+    pending_id: int
+    detail: str = "Queued in pending_corrections (not applied to live lexicon)"
+
+
 class MessageTestRequest(BaseModel):
     phone_number: str
     platform: Platform
